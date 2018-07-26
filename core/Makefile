@@ -1283,6 +1283,8 @@ define build-recoveryramdisk
             >> $(TARGET_RECOVERY_ROOT_OUT)/prop.default)
   $(hide) cat $(recovery_build_props) \
           >> $(TARGET_RECOVERY_ROOT_OUT)/prop.default
+  # Never allow persist.sys.usb.config to be set to none in recovery
+  $(hide) sed -i 's/persist.sys.usb.config=none/persist.sys.usb.config=adb/g' $(TARGET_RECOVERY_ROOT_OUT)/prop.default
   $(hide) ln -sf prop.default $(TARGET_RECOVERY_ROOT_OUT)/default.prop
   $(BOARD_RECOVERY_IMAGE_PREPARE)
   $(if $(filter true,$(BOARD_BUILD_SYSTEM_ROOT_IMAGE)), \
@@ -2147,6 +2149,10 @@ $(INSTALLED_VBMETAIMAGE_TARGET): $(AVBTOOL)
 	$(hide) $(AVBTOOL) make_vbmeta_image \
 	  --flag 2 --padding_size 4096 --output $@
 
+else ifdef BOARD_PREBUILT_VBMETAIMAGE
+INSTALLED_VBMETAIMAGE_TARGET := $(PRODUCT_OUT)/vbmeta.img
+$(eval $(call copy-one-file,$(BOARD_PREBUILT_VBMETAIMAGE),$(INSTALLED_VBMETAIMAGE_TARGET)))
+
 endif # BOARD_AVB_ENABLE
 
 # -----------------------------------------------------------------
@@ -2661,6 +2667,10 @@ endif
 # it to $(zip_root)/IMAGES without passing some info into misc_info.txt for
 # regeneration.
 ifeq (true,$(BOARD_BUILD_DISABLED_VBMETAIMAGE))
+	$(hide) mkdir -p $(zip_root)/IMAGES
+	$(hide) cp $(INSTALLED_VBMETAIMAGE_TARGET) $(zip_root)/IMAGES/
+endif
+ifdef BOARD_PREBUILT_VBMETAIMAGE
 	$(hide) mkdir -p $(zip_root)/IMAGES
 	$(hide) cp $(INSTALLED_VBMETAIMAGE_TARGET) $(zip_root)/IMAGES/
 endif
